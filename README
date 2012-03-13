@@ -1,0 +1,9 @@
+The source code here is orignal come from OTC android project.
+The mapping between them looks like below.
+
+OTC android src tree                    source directory
+system/core/fastboot                    .
+system/core/include/zipfile/zipfile.h   include/zipfile.h
+system/core/mkbootimg/bootimg.h         include/bootimg.h
+system/core/libzipfile                  libzipfile
+external/zlib                           zlib

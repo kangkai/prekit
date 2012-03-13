@@ -38,7 +38,7 @@
 
 #include <sys/time.h>
 #include <bootimg.h>
-#include <zipfile/zipfile.h>
+#include <zipfile.h>
 
 #include "fastboot.h"
 
