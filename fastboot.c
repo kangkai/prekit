@@ -42,6 +42,12 @@
 
 #include "fastboot.h"
 
+#define FW_DNX_BIN      "dnx.bin"
+#define IFWI_BIN        "ifwi.bin"
+#define NORMALOS_BIN    "stitch.normalos.bin"
+#define PREOS_BIN       "stitch.preos.bin"
+#define PLATFORM_IMG    "platform.img.gz"
+
 char cur_product[FB_RESPONSE_SZ + 1];
 
 void bootimg_set_cmdline(boot_img_hdr *h, const char *cmdline);
@@ -221,7 +227,7 @@ void usage(void)
             "usage: fastboot [ <option> ] <command>\n"
             "\n"
             "commands:\n"
-            "  update <filename>                        reflash device from update.zip\n"
+            "  update <filename>                        reflash device from a zip package\n"
             "  flashall                                 flash boot + recovery + system\n"
             "  flash <partition> [ <filename> ]         write a file to a flash partition\n"
             "  erase <partition>                        erase a flash partition\n"
@@ -445,48 +451,31 @@ void do_update(char *fn)
     unsigned sz;
     zipfile_t zip;
 
-    queue_info_dump();
-
-    fb_queue_query_save("product", cur_product, sizeof(cur_product));
-
     zdata = load_file(fn, &zsize);
     if (zdata == 0) die("failed to load '%s': %s", fn, strerror(errno));
 
     zip = init_zipfile(zdata, zsize);
     if(zip == 0) die("failed to access zipdata in '%s'");
 
-    data = unzip_file(zip, "android-info.txt", &sz);
-    if (data == 0) {
-        char *tmp;
-            /* fallback for older zipfiles */
-        data = unzip_file(zip, "android-product.txt", &sz);
-        if ((data == 0) || (sz < 1)) {
-            die("update package has no android-info.txt or android-product.txt");
-        }
-        tmp = malloc(sz + 128);
-        if (tmp == 0) die("out of memory");
-        sprintf(tmp,"board=%sversion-baseband=0.66.04.19\n",(char*)data);
-        data = tmp;
-        sz = strlen(tmp);
-    }
+    data = unzip_file(zip, FW_DNX_BIN, &sz);
+    if (data == 0) die("package missing %s", FW_DNX_BIN);
+    fb_queue_flash("dnx", data, sz);
 
-    setup_requirements(data, sz);
+    data = unzip_file(zip, IFWI_BIN, &sz);
+    if (data == 0) die("package missing %s", IFWI_BIN);
+    fb_queue_flash("ifwi", data, sz);
 
-    data = unzip_file(zip, "boot.img", &sz);
-    if (data == 0) die("update package missing boot.img");
-    do_update_signature(zip, "boot.sig");
+    data = unzip_file(zip, NORMALOS_BIN, &sz);
+    if (data == 0) die("package missing %s", NORMALOS_BIN);
     fb_queue_flash("boot", data, sz);
 
-    data = unzip_file(zip, "recovery.img", &sz);
-    if (data != 0) {
-        do_update_signature(zip, "recovery.sig");
-        fb_queue_flash("recovery", data, sz);
-    }
+    data = unzip_file(zip, PREOS_BIN, &sz);
+    if (data == 0) die("package missing %s\n", PREOS_BIN);
+    fb_queue_flash("preos", data, sz);
 
-    data = unzip_file(zip, "system.img", &sz);
-    if (data == 0) die("update package missing system.img");
-    do_update_signature(zip, "system.sig");
-    fb_queue_flash("system", data, sz);
+    data = unzip_file(zip, PLATFORM_IMG, &sz);
+    if (data == 0) die("package missing %s\n", PLATFORM_IMG);
+    fb_queue_flash("platform", data, sz);
 }
 
 void do_send_signature(char *fn)
@@ -703,13 +692,9 @@ int main(int argc, char **argv)
             do_flashall();
             wants_reboot = 1;
         } else if(!strcmp(*argv, "update")) {
-            if (argc > 1) {
-                do_update(argv[1]);
-                skip(2);
-            } else {
-                do_update("update.zip");
-                skip(1);
-            }
+            require(2);
+            do_update(argv[1]);
+            skip(2);
             wants_reboot = 1;
         } else if(!strcmp(*argv, "oem")) {
             argc = do_oem_command(argc, argv);
