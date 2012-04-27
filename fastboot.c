@@ -37,8 +37,7 @@
 #include <ctype.h>
 
 #include <sys/time.h>
-#include <bootimg.h>
-#include <zipfile.h>
+#include "libzipfile/zipfile.h"
 
 #include "fastboot.h"
 
@@ -48,24 +47,10 @@
 #define PREOS_BIN       "stitch.preos.bin"
 #define PLATFORM_IMG    "platform.img.gz"
 
-char cur_product[FB_RESPONSE_SZ + 1];
-
-void bootimg_set_cmdline(boot_img_hdr *h, const char *cmdline);
-
-boot_img_hdr *mkbootimg(void *kernel, unsigned kernel_size,
-                        void *ramdisk, unsigned ramdisk_size,
-                        void *second, unsigned second_size,
-                        unsigned page_size, unsigned base,
-                        unsigned *bootimg_size);
-
 static usb_handle *usb = 0;
 static const char *serial = 0;
-static const char *product = 0;
-static const char *cmdline = 0;
 static int wipe_data = 0;
 static unsigned short vendor_id = 0;
-
-static unsigned base_addr = 0x10000000;
 
 void die(const char *fmt, ...)
 {
@@ -76,46 +61,6 @@ void die(const char *fmt, ...)
     fprintf(stderr,"\n");
     va_end(ap);
     exit(1);
-}
-
-void get_my_path(char *path);
-
-char *find_item(const char *item, const char *product)
-{
-    char *dir;
-    char *fn;
-    char path[PATH_MAX + 128];
-
-    if(!strcmp(item,"boot")) {
-        fn = "boot.img";
-    } else if(!strcmp(item,"recovery")) {
-        fn = "recovery.img";
-    } else if(!strcmp(item,"system")) {
-        fn = "system.img";
-    } else if(!strcmp(item,"userdata")) {
-        fn = "userdata.img";
-    } else if(!strcmp(item,"info")) {
-        fn = "android-info.txt";
-    } else {
-        fprintf(stderr,"unknown partition '%s'\n", item);
-        return 0;
-    }
-
-    if(product) {
-        get_my_path(path);
-        sprintf(path + strlen(path),
-                "../../../target/product/%s/%s", product, fn);
-        return strdup(path);
-    }
-
-    dir = getenv("ANDROID_PRODUCT_OUT");
-    if((dir == 0) || (dir[0] == 0)) {
-        die("neither -p product specified nor ANDROID_PRODUCT_OUT set");
-        return 0;
-    }
-
-    sprintf(path, "%s/%s", dir, fn);
-    return strdup(path);
 }
 
 #ifdef _WIN32
@@ -227,13 +172,10 @@ void usage(void)
             "usage: fastboot [ <option> ] <command>\n"
             "\n"
             "commands:\n"
-            "  update <filename>                        reflash device from a zip package\n"
-            "  flashall                                 flash boot + recovery + system\n"
-            "  flash <partition> [ <filename> ]         write a file to a flash partition\n"
+            "  flashall <filename>                      reflash device from a zip package\n"
+            "  flash <partition> <filename>             write a file to a flash partition\n"
             "  erase <partition>                        erase a flash partition\n"
             "  getvar <variable>                        display a bootloader variable\n"
-            "  boot <kernel> [ <ramdisk> ]              download and boot kernel\n"
-            "  flash:raw boot <kernel> [ <ramdisk> ]    create bootimage and flash it\n"
             "  devices                                  list all connected devices\n"
             "  continue                                 continue with autoboot\n"
             "  reboot                                   reboot device normally\n"
@@ -241,67 +183,9 @@ void usage(void)
             "  help                                     show this help message\n"
             "\n"
             "options:\n"
-            "  -w                                       erase userdata and cache\n"
             "  -s <serial number>                       specify device serial number\n"
-            "  -p <product>                             specify product name\n"
-            "  -c <cmdline>                             override kernel commandline\n"
             "  -i <vendor id>                           specify a custom USB vendor id\n"
-            "  -b <base_addr>                           specify a custom kernel base address\n"
-            "  -n <page size>                           specify the nand page size. default: 2048\n"
         );
-}
-
-void *load_bootable_image(unsigned page_size, const char *kernel, const char *ramdisk,
-                          unsigned *sz, const char *cmdline)
-{
-    void *kdata = 0, *rdata = 0;
-    unsigned ksize = 0, rsize = 0;
-    void *bdata;
-    unsigned bsize;
-
-    if(kernel == 0) {
-        fprintf(stderr, "no image specified\n");
-        return 0;
-    }
-
-    kdata = load_file(kernel, &ksize);
-    if(kdata == 0) {
-        fprintf(stderr, "cannot load '%s': %s\n", kernel, strerror(errno));
-        return 0;
-    }
-
-        /* is this actually a boot image? */
-    if(!memcmp(kdata, BOOT_MAGIC, BOOT_MAGIC_SIZE)) {
-        if(cmdline) bootimg_set_cmdline((boot_img_hdr*) kdata, cmdline);
-
-        if(ramdisk) {
-            fprintf(stderr, "cannot boot a boot.img *and* ramdisk\n");
-            return 0;
-        }
-
-        *sz = ksize;
-        return kdata;
-    }
-
-    if(ramdisk) {
-        rdata = load_file(ramdisk, &rsize);
-        if(rdata == 0) {
-            fprintf(stderr,"cannot load '%s': %s\n", ramdisk, strerror(errno));
-            return  0;
-        }
-    }
-
-    fprintf(stderr,"creating boot image...\n");
-    bdata = mkbootimg(kdata, ksize, rdata, rsize, 0, 0, page_size, base_addr, &bsize);
-    if(bdata == 0) {
-        fprintf(stderr,"failed to create boot.img\n");
-        return 0;
-    }
-    if(cmdline) bootimg_set_cmdline((boot_img_hdr*) bdata, cmdline);
-    fprintf(stderr,"creating boot image - %d bytes\n", bsize);
-    *sz = bsize;
-
-    return bdata;
 }
 
 void *unzip_file(zipfile_t zip, const char *name, unsigned *sz)
@@ -347,109 +231,23 @@ static char *strip(char *s)
     return s;
 }
 
-#define MAX_OPTIONS 32
-static int setup_requirement_line(char *name)
-{
-    char *val[MAX_OPTIONS];
-    const char **out;
-    char *prod = NULL;
-    unsigned n, count;
-    char *x;
-    int invert = 0;
-
-    if (!strncmp(name, "reject ", 7)) {
-        name += 7;
-        invert = 1;
-    } else if (!strncmp(name, "require ", 8)) {
-        name += 8;
-        invert = 0;
-    } else if (!strncmp(name, "require-for-product:", 20)) {
-        // Get the product and point name past it
-        prod = name + 20;
-        name = strchr(name, ' ');
-        if (!name) return -1;
-        *name = 0;
-        name += 1;
-        invert = 0;
-    }
-
-    x = strchr(name, '=');
-    if (x == 0) return 0;
-    *x = 0;
-    val[0] = x + 1;
-
-    for(count = 1; count < MAX_OPTIONS; count++) {
-        x = strchr(val[count - 1],'|');
-        if (x == 0) break;
-        *x = 0;
-        val[count] = x + 1;
-    }
-
-    name = strip(name);
-    for(n = 0; n < count; n++) val[n] = strip(val[n]);
-
-    name = strip(name);
-    if (name == 0) return -1;
-
-        /* work around an unfortunate name mismatch */
-    if (!strcmp(name,"board")) name = "product";
-
-    out = malloc(sizeof(char*) * count);
-    if (out == 0) return -1;
-
-    for(n = 0; n < count; n++) {
-        out[n] = strdup(strip(val[n]));
-        if (out[n] == 0) return -1;
-    }
-
-    fb_queue_require(prod, name, invert, n, out);
-    return 0;
-}
-
-static void setup_requirements(char *data, unsigned sz)
-{
-    char *s;
-
-    s = data;
-    while (sz-- > 0) {
-        if(*s == '\n') {
-            *s++ = 0;
-            if (setup_requirement_line(data)) {
-                die("out of memory");
-            }
-            data = s;
-        } else {
-            s++;
-        }
-    }
-}
-
 void queue_info_dump(void)
 {
     fb_queue_notice("--------------------------------------------");
-    fb_queue_display("version-bootloader", "Bootloader Version...");
-    fb_queue_display("version-baseband",   "Baseband Version.....");
-    fb_queue_display("serialno",           "Serial Number........");
+    fb_queue_display("preos", "Current Pre-OS Version ");
+    fb_queue_display("ifwi",  "Current IFWI Version   ");
     fb_queue_notice("--------------------------------------------");
 }
 
-void do_update_signature(zipfile_t zip, char *fn)
-{
-    void *data;
-    unsigned sz;
-    data = unzip_file(zip, fn, &sz);
-    if (data == 0) return;
-    fb_queue_download("signature", data, sz);
-    fb_queue_command("signature", "installing signature");
-}
-
-void do_update(char *fn)
+void do_flashall(char *fn)
 {
     void *zdata;
     unsigned zsize;
     void *data;
     unsigned sz;
     zipfile_t zip;
+
+    queue_info_dump();
 
     zdata = load_file(fn, &zsize);
     if (zdata == 0) die("failed to load '%s': %s", fn, strerror(errno));
@@ -496,42 +294,6 @@ void do_send_signature(char *fn)
     fb_queue_command("signature", "installing signature");
 }
 
-void do_flashall(void)
-{
-    char *fname;
-    void *data;
-    unsigned sz;
-
-    queue_info_dump();
-
-    fb_queue_query_save("product", cur_product, sizeof(cur_product));
-
-    fname = find_item("info", product);
-    if (fname == 0) die("cannot find android-info.txt");
-    data = load_file(fname, &sz);
-    if (data == 0) die("could not load android-info.txt: %s", strerror(errno));
-    setup_requirements(data, sz);
-
-    fname = find_item("boot", product);
-    data = load_file(fname, &sz);
-    if (data == 0) die("could not load boot.img: %s", strerror(errno));
-    do_send_signature(fname);
-    fb_queue_flash("boot", data, sz);
-
-    fname = find_item("recovery", product);
-    data = load_file(fname, &sz);
-    if (data != 0) {
-        do_send_signature(fname);
-        fb_queue_flash("recovery", data, sz);
-    }
-
-    fname = find_item("system", product);
-    data = load_file(fname, &sz);
-    if (data == 0) die("could not load system.img: %s", strerror(errno));
-    do_send_signature(fname);
-    fb_queue_flash("system", data, sz);
-}
-
 #define skip(n) do { argc -= (n); argv += (n); } while (0)
 #define require(n) do { if (argc < (n)) {usage(); exit(1);}} while (0)
 
@@ -555,12 +317,10 @@ int do_oem_command(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-    int wants_wipe = 0;
     int wants_reboot = 0;
     int wants_reboot_bootloader = 0;
     void *data;
     unsigned sz;
-    unsigned page_size = 2048;
     int status;
 
     skip(1);
@@ -583,34 +343,13 @@ int main(int argc, char **argv)
     serial = getenv("ANDROID_SERIAL");
 
     while (argc > 0) {
-        if(!strcmp(*argv, "-w")) {
-            wants_wipe = 1;
-            skip(1);
-        } else if(!strcmp(*argv, "-b")) {
-            require(2);
-            base_addr = strtoul(argv[1], 0, 16);
-            skip(2);
-        } else if(!strcmp(*argv, "-n")) {
-            require(2);
-            page_size = (unsigned)strtoul(argv[1], NULL, 0);
-            if (!page_size) die("invalid page size");
-            skip(2);
-        } else if(!strcmp(*argv, "-s")) {
+        if(!strcmp(*argv, "-s")) {
             require(2);
             serial = argv[1];
-            skip(2);
-        } else if(!strcmp(*argv, "-p")) {
-            require(2);
-            product = argv[1];
-            skip(2);
-        } else if(!strcmp(*argv, "-c")) {
-            require(2);
-            cmdline = argv[1];
             skip(2);
         } else if(!strcmp(*argv, "-i")) {
             char *endptr = NULL;
             unsigned long val;
-
             require(2);
             val = strtoul(argv[1], &endptr, 0);
             if (!endptr || *endptr != '\0' || (val & ~0xffff))
@@ -642,58 +381,18 @@ int main(int argc, char **argv)
         } else if (!strcmp(*argv, "continue")) {
             fb_queue_command("continue", "resuming boot");
             skip(1);
-        } else if(!strcmp(*argv, "boot")) {
-            char *kname = 0;
-            char *rname = 0;
-            skip(1);
-            if (argc > 0) {
-                kname = argv[0];
-                skip(1);
-            }
-            if (argc > 0) {
-                rname = argv[0];
-                skip(1);
-            }
-            data = load_bootable_image(page_size, kname, rname, &sz, cmdline);
-            if (data == 0) return 1;
-            fb_queue_download("boot.img", data, sz);
-            fb_queue_command("boot", "booting");
         } else if(!strcmp(*argv, "flash")) {
             char *pname = argv[1];
             char *fname = 0;
-            require(2);
-            if (argc > 2) {
-                fname = argv[2];
-                skip(3);
-            } else {
-                fname = find_item(pname, product);
-                skip(2);
-            }
-            if (fname == 0) die("cannot determine image filename for '%s'", pname);
+            require(3);
+            fname = argv[2];
+            skip(3);
             data = load_file(fname, &sz);
             if (data == 0) die("cannot load '%s': %s\n", fname, strerror(errno));
             fb_queue_flash(pname, data, sz);
-        } else if(!strcmp(*argv, "flash:raw")) {
-            char *pname = argv[1];
-            char *kname = argv[2];
-            char *rname = 0;
-            require(3);
-            if(argc > 3) {
-                rname = argv[3];
-                skip(4);
-            } else {
-                skip(3);
-            }
-            data = load_bootable_image(page_size, kname, rname, &sz, cmdline);
-            if (data == 0) die("cannot load bootable image");
-            fb_queue_flash(pname, data, sz);
         } else if(!strcmp(*argv, "flashall")) {
-            skip(1);
-            do_flashall();
-            wants_reboot = 1;
-        } else if(!strcmp(*argv, "update")) {
             require(2);
-            do_update(argv[1]);
+            do_flashall(argv[1]);
             skip(2);
             wants_reboot = 1;
         } else if(!strcmp(*argv, "oem")) {
@@ -704,10 +403,6 @@ int main(int argc, char **argv)
         }
     }
 
-    if (wants_wipe) {
-        fb_queue_erase("userdata");
-        fb_queue_erase("cache");
-    }
     if (wants_reboot) {
         fb_queue_reboot();
     } else if (wants_reboot_bootloader) {

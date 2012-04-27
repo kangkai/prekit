@@ -8,7 +8,7 @@ LDFLAGS := -lz
 vpath %.c libzipfile
 
 # fastboot
-F_SRC := protocol.c engine.c bootimg.c fastboot.c
+F_SRC := protocol.c engine.c fastboot.c
 ifeq ($(HOST_OS),linux)
     F_SRC += usb_linux.c util_linux.c
 endif
