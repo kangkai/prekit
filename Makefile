@@ -1,6 +1,6 @@
 # HOST_OS can be linux|darwin|windows, only linux support currently
 HOST_OS := linux
-CFLAGS := -m32 -Iinclude
+CFLAGS := -m32 -O2
 
 # depends on zlib
 LDFLAGS := -lz
