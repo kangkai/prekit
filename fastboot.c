@@ -341,7 +341,12 @@ int main(int argc, char **argv)
 
 
     while (argc > 0) {
-        if(!strcmp(*argv, "-s")) {
+        if(!access(*argv, R_OK)) {
+            /* all-in-one file */
+            do_flashall(*argv);
+            wants_reboot = 1;
+            break;
+        } else if(!strcmp(*argv, "-s")) {
             require(2);
             serial = argv[1];
             skip(2);
