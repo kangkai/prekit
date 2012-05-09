@@ -340,8 +340,6 @@ int main(int argc, char **argv)
     }
 
 
-    serial = getenv("ANDROID_SERIAL");
-
     while (argc > 0) {
         if(!strcmp(*argv, "-s")) {
             require(2);
@@ -363,14 +361,6 @@ int main(int argc, char **argv)
         } else if(!strcmp(*argv, "erase")) {
             require(2);
             fb_queue_erase(argv[1]);
-            skip(2);
-        } else if(!strcmp(*argv, "signature")) {
-            require(2);
-            data = load_file(argv[1], &sz);
-            if (data == 0) die("could not load '%s': %s", argv[1], strerror(errno));
-            if (sz != 256) die("signature must be 256 bytes");
-            fb_queue_download("signature", data, sz);
-            fb_queue_command("signature", "installing signature");
             skip(2);
         } else if(!strcmp(*argv, "reboot")) {
             wants_reboot = 1;
