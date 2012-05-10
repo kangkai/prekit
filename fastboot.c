@@ -173,6 +173,7 @@ void usage(void)
             "  flash <partition> <filename>             write a file to a flash partition\n"
             "  erase <partition>                        erase a flash partition\n"
             "  getvar <variable>                        display a bootloader variable\n"
+            "  oem <commands>                           oem specific commands\n"
             "  devices                                  list all connected devices\n"
             "  continue                                 continue with autoboot\n"
             "  reboot                                   reboot device normally\n"
