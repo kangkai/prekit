@@ -40,12 +40,9 @@
 #include "libzipfile/zipfile.h"
 
 #include "fastboot.h"
+#include "parser.h"
 
-#define FW_DNX_BIN      "dnx.bin"
-#define IFWI_BIN        "ifwi.bin"
-#define NORMALOS_BIN    "stitch.normalos.bin"
-#define PREOS_BIN       "stitch.preos.bin"
-#define PLATFORM_IMG    "platform.img.gz"
+#define CONFIG_FILE	"manifest.txt"
 
 static usb_handle *usb = 0;
 static const char *serial = 0;
@@ -246,6 +243,18 @@ void do_flashall(char *fn)
     void *data;
     unsigned sz;
     zipfile_t zip;
+    struct config conf;
+    char ver[FB_RESPONSE_SZ + 1];
+    char *pc;
+    int status;
+
+    /* get target IFWI major version */
+    fb_queue_query_save("ifwi", ver, sizeof(ver));
+    usb = open_device();
+    fb_execute_queue(usb);
+
+    if ((pc = strchr(ver, '.')))
+	    *pc = 0;
 
     queue_info_dump();
 
@@ -255,25 +264,51 @@ void do_flashall(char *fn)
     zip = init_zipfile(zdata, zsize);
     if(zip == 0) die("failed to access zipdata in '%s'");
 
-    data = unzip_file(zip, FW_DNX_BIN, &sz);
-    if (data == 0) die("package missing %s", FW_DNX_BIN);
+    /* get config file */
+    data = unzip_file(zip, CONFIG_FILE, &sz);
+    if (data == 0) die("package missing %s", CONFIG_FILE);
+    if (parse_config(data, (size_t)sz, &conf, ver)) die("parse config failed.");
+
+    /* basic check */
+    if (strlen(conf.fwr_dnx) <= 0 || strlen(conf.ifwi) <=0 ||
+            strlen(conf.boot) <= 0 || strlen(conf.preos) <= 0 ||
+            strlen(conf.platform) <= 0) {
+        fprintf(stderr, "invalid config file\n");
+        return;
+    }
+
+    data = unzip_file(zip, conf.fwr_dnx, &sz);
+    if (data == 0) die("package missing %s.", conf.fwr_dnx);
     fb_queue_flash("dnx", data, sz);
 
-    data = unzip_file(zip, IFWI_BIN, &sz);
-    if (data == 0) die("package missing %s", IFWI_BIN);
+    data = unzip_file(zip, conf.ifwi, &sz);
+    if (data == 0) die("package missing %s.", conf.ifwi);
     fb_queue_flash("ifwi", data, sz);
 
-    data = unzip_file(zip, NORMALOS_BIN, &sz);
-    if (data == 0) die("package missing %s", NORMALOS_BIN);
+    data = unzip_file(zip, conf.boot, &sz);
+    if (data == 0) die("package missing %s.", conf.boot);
     fb_queue_flash("boot", data, sz);
 
-    data = unzip_file(zip, PREOS_BIN, &sz);
-    if (data == 0) die("package missing %s\n", PREOS_BIN);
+    data = unzip_file(zip, conf.preos, &sz);
+    if (data == 0) die("package missing %s.", conf.preos);
     fb_queue_flash("preos", data, sz);
 
-    data = unzip_file(zip, PLATFORM_IMG, &sz);
-    if (data == 0) die("package missing %s\n", PLATFORM_IMG);
+    data = unzip_file(zip, conf.platform, &sz);
+    if (data == 0) die("package missing %s.", conf.platform);
     fb_queue_flash("platform", data, sz);
+
+    /* data and csa are optional */
+    if (strlen(conf.data)) {
+        data = unzip_file(zip, conf.data, &sz);
+        if (data != 0)
+            fb_queue_flash("data", data, sz);
+    }
+
+    if (strlen(conf.csa)) {
+        data = unzip_file(zip, conf.csa, &sz);
+        if (data != 0)
+            fb_queue_flash("csa", data, sz);
+    }
 }
 
 void do_send_signature(char *fn)
