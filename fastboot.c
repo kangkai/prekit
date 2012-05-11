@@ -336,8 +336,16 @@ void do_send_signature(char *fn)
 int do_oem_command(int argc, char **argv)
 {
     int i;
+    void *data;
+    unsigned sz;
     char command[256];
     if (argc <= 1) return 0;
+
+    if (0 == strncmp(argv[1], "push", 4)) {
+	data = load_file(argv[2], &sz);
+	if (data == 0) die("could not load '%s': %s", argv[2], strerror(errno));
+	fb_queue_download(argv[2], data, sz);
+    }
 
     command[0] = 0;
     while(1) {
