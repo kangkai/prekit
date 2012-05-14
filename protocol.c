@@ -179,3 +179,14 @@ int fb_download_data(usb_handle *usb, const void *data, unsigned size)
     }
 }
 
+int fb_stream_flash(usb_handle *usb, const char *cmd,
+        const void *data, unsigned size)
+{
+    int r;
+    r = _command_send(usb, cmd, data, size, 0);
+    if (r < 0) {
+        return -1;
+    } else {
+        return 0;
+    }
+}

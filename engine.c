@@ -60,6 +60,7 @@ char *mkmsg(const char *fmt, ...)
 #define OP_COMMAND    2
 #define OP_QUERY      3
 #define OP_NOTICE     4
+#define OP_FLASH      5
 
 typedef struct Action Action;
 
@@ -144,6 +145,15 @@ void fb_queue_flash(const char *ptn, void *data, unsigned sz)
 
     a = queue_action(OP_COMMAND, "flash:%s", ptn);
     a->msg = mkmsg("writing '%s'", ptn);
+}
+
+void fb_queue_stream_flash(const char *ptn, void *data, unsigned sz)
+{
+    Action *a;
+    a = queue_action(OP_FLASH, "flash:%s:%08X", ptn, sz);
+    a->data = data;
+    a->size = sz;
+    a->msg = mkmsg("streaming flash '%s', size (%d KB)", ptn, sz / 1024);
 }
 
 static int match(char *str, const char **value, unsigned count)
@@ -272,6 +282,10 @@ int fb_execute_queue(usb_handle *usb)
             if (status) break;
         } else if (a->op == OP_NOTICE) {
             fprintf(stderr,"%s\n",(char*)a->data);
+        } else if (a->op == OP_FLASH) {
+            status = fb_stream_flash(usb, a->cmd, a->data, a->size);
+            status = a->func(a, status, status ? fb_get_error() : "");
+            if (status) break;
         } else {
             die("bogus action");
         }

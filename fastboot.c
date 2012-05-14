@@ -309,35 +309,35 @@ void do_flashall(char *fn)
 
     data = unzip_file(zip, conf.fwr_dnx, &sz);
     if (data == 0) die("package missing %s.", conf.fwr_dnx);
-    fb_queue_flash("dnx", data, sz);
+    fb_queue_stream_flash("dnx", data, sz);
 
     data = unzip_file(zip, conf.ifwi, &sz);
     if (data == 0) die("package missing %s.", conf.ifwi);
-    fb_queue_flash("ifwi", data, sz);
+    fb_queue_stream_flash("ifwi", data, sz);
 
     data = unzip_file(zip, conf.boot, &sz);
     if (data == 0) die("package missing %s.", conf.boot);
-    fb_queue_flash("boot", data, sz);
+    fb_queue_stream_flash("boot", data, sz);
 
     data = unzip_file(zip, conf.preos, &sz);
     if (data == 0) die("package missing %s.", conf.preos);
-    fb_queue_flash("preos", data, sz);
+    fb_queue_stream_flash("preos", data, sz);
 
     data = unzip_file(zip, conf.platform, &sz);
     if (data == 0) die("package missing %s.", conf.platform);
-    fb_queue_flash("platform", data, sz);
+    fb_queue_stream_flash("platform", data, sz);
 
     /* data and csa are optional */
     if (strlen(conf.data)) {
         data = unzip_file(zip, conf.data, &sz);
         if (data != 0)
-            fb_queue_flash("data", data, sz);
+            fb_queue_stream_flash("data", data, sz);
     }
 
     if (strlen(conf.csa)) {
         data = unzip_file(zip, conf.csa, &sz);
         if (data != 0)
-            fb_queue_flash("csa", data, sz);
+            fb_queue_stream_flash("csa", data, sz);
     }
 }
 
@@ -457,7 +457,7 @@ int main(int argc, char **argv)
             skip(3);
             data = load_file(fname, &sz);
             if (data == 0) die("cannot load '%s': %s\n", fname, strerror(errno));
-            fb_queue_flash(pname, data, sz);
+            fb_queue_stream_flash(pname, data, sz);
         } else if(!strcmp(*argv, "flashall")) {
             require(2);
             do_flashall(argv[1]);
