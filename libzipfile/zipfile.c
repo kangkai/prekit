@@ -39,13 +39,25 @@ release_zipfile(zipfile_t f)
     free(file);
 }
 
+#define max(x,y) ((x) > (y) ? (x) : (y))
+/*
+ * we should compare the full name rather than
+ * the name prefix, when there are more than one
+ * files has the same prefix we want it may return
+ * wrong value.
+ * For example:
+ * entryName is "platform.img.gz", however, there is no
+ * platform.img.gz in zip but platform.img is there.
+ * we'll got platform.img by mistake.
+ */
 zipentry_t
 lookup_zipentry(zipfile_t f, const char* entryName)
 {
     Zipfile* file = (Zipfile*)f;
     Zipentry* entry = file->entries;
     while (entry) {
-        if (0 == memcmp(entryName, entry->fileName, entry->fileNameLength)) {
+        if (0 == memcmp(entryName, entry->fileName,
+					max(entry->fileNameLength, strlen(entryName)))) {
             return entry;
         }
         entry = entry->next;
