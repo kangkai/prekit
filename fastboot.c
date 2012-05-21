@@ -271,7 +271,7 @@ void do_flashall(char *fn)
     if (zdata == 0) die("failed to load '%s': %s", fn, strerror(errno));
 
     zip = init_zipfile(zdata, zsize);
-    if(zip == 0) die("failed to access zipdata in '%s'");
+    if(zip == 0) die("failed to access zipdata in '%s', is it a zip file?", fn);
 
     /* is converted-system tarball? */
     data = unzip_file(zip, CONFIG_FILE, &sz);
