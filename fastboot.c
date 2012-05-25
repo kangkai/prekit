@@ -382,7 +382,7 @@ int do_oem_command(int argc, char **argv)
     char command[256];
     if (argc <= 1) return 0;
 
-    if (0 == strncmp(argv[1], "push", 4)) {
+    if (0 == strcmp(argv[1], "push")) {
         data = load_file(argv[2], &sz);
     if (data == 0) die("could not load '%s': %s", argv[2], strerror(errno));
         fb_queue_download(argv[2], data, sz);
