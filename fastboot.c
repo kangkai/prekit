@@ -35,10 +35,12 @@
 #include <unistd.h>
 #include <limits.h>
 #include <ctype.h>
-
 #include <sys/time.h>
-#include "libzipfile/zipfile.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <libgen.h>
 
+#include "libzipfile/zipfile.h"
 #include "fastboot.h"
 #include "parser.h"
 
@@ -187,6 +189,12 @@ void usage(void)
             "  reboot                                   reboot device normally\n"
             "  reboot-bootloader                        reboot device into bootloader\n"
             "  help                                     show this help message\n"
+            "\n"
+            "oem commands:\n"
+            "  system <command>                         execute command on target\n"
+            "  showtext                                 toggle verbose info displayed on UI\n"
+            "  push <local-file>                        push file to target\n"
+            "  pull <remote-file> [local-file]          pull file to local from target\n"
             "\n"
             "options:\n"
             "  -s <serial number>                       specify device serial number\n"
@@ -374,18 +382,32 @@ void do_send_signature(char *fn)
 #define skip(n) do { argc -= (n); argv += (n); } while (0)
 #define require(n) do { if (argc < (n)) {usage(); exit(1);}} while (0)
 
+int fd_pull;
 int do_oem_command(int argc, char **argv)
 {
     int i;
     void *data;
     unsigned sz;
     char command[256];
+	char *fn;
+
     if (argc <= 1) return 0;
 
     if (0 == strcmp(argv[1], "push")) {
         data = load_file(argv[2], &sz);
-    if (data == 0) die("could not load '%s': %s", argv[2], strerror(errno));
+        if (data == 0) die("could not load '%s': %s", argv[2], strerror(errno));
         fb_queue_download(argv[2], data, sz);
+    } else if (0 == strcmp(argv[1], "pull")) {
+        if (argc > 3)
+            fn = argv[3];
+        else
+            fn = basename(argv[2]);
+            fd_pull = open(fn, O_CREAT | O_EXCL | O_TRUNC | O_WRONLY,
+                    S_IRUSR | S_IWUSR);
+        if (fd_pull < 0) {
+            fprintf(stderr, "create local file %s: %s\n", fn, strerror(errno));
+            return -1;
+        }
     }
 
     command[0] = 0;
@@ -477,6 +499,8 @@ int main(int argc, char **argv)
             wants_reboot = 1;
         } else if(!strcmp(*argv, "oem")) {
             argc = do_oem_command(argc, argv);
+            if (argc)
+                return argc;
         } else {
             usage();
             return 1;

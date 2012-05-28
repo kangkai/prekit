@@ -55,4 +55,6 @@ void fb_queue_stream_flash(const char *ptn, void *data, unsigned sz);
 /* util stuff */
 void die(const char *fmt, ...);
 
+extern int fd_pull;
+
 #endif

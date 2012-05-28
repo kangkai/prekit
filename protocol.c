@@ -30,6 +30,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
 #include "fastboot.h"
 
@@ -40,14 +43,29 @@ char *fb_get_error(void)
     return ERROR;
 }
 
+static int save_to_file(int fd, void *data, unsigned long sz)
+{
+    if (fd < 0 || sz < 0)
+        return -1;
+
+    if (write(fd, data, sz) != sz) {
+        fprintf(stderr, "write failed.\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 static int check_response(usb_handle *usb, unsigned size, 
                           unsigned data_okay, char *response)
 {
-    unsigned char status[65];
+    /* FIXME: not clear why 64 doesn't work */
+#define SIZE 512
+    unsigned char status[SIZE + 1];
     int r;
 
     for(;;) {
-        r = usb_read(usb, status, 64);
+        r = usb_read(usb, status, SIZE);
         if(r < 0) {
             sprintf(ERROR, "status read failed (%s)", strerror(errno));
             usb_close(usb);
@@ -90,6 +108,54 @@ static int check_response(usb_handle *usb, unsigned size,
                 return -1;
             }
             return dsize;
+        }
+
+        if (!memcmp(status, "FILE", 4)) {
+            char *size;
+            unsigned dsize;
+            unsigned left;
+            void *data;
+            char response[64];
+
+            size = strndup((char *)status + 4, 8);
+            if (!size)
+                goto err;
+
+            dsize = strtoul(size, 0, 16);
+            if (dsize <= 0)
+                goto err;
+
+            if (dsize == r - 12) {
+                /* already read in status */
+                if (save_to_file(fd_pull, status + 12, r - 12))
+                    goto err;
+            } else {
+                left = dsize - (r - 12);
+                data = malloc(dsize);
+                if (!data)
+                    goto err;
+
+                memcpy(data, status + 12, r - 12);
+                if (usb_read(usb, data + r - 12, dsize) != left)
+                    goto err;
+
+                if (save_to_file(fd_pull, data, dsize))
+                    goto err;
+            }
+
+            /* send bytes written */
+            snprintf(response, sizeof(response), "FILE%08x", dsize);
+            if (usb_write(usb, response, 12) != 12)
+                goto usb_err;
+
+            continue;
+err:
+            snprintf(response, sizeof(response), "FILE%08x", 0);
+            if (usb_write(usb, response, 12) == 12)
+                continue;
+usb_err:
+            usb_close(usb);
+            return -1;
         }
 
         strcpy(ERROR,"unknown status code");

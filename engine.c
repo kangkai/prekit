@@ -31,6 +31,8 @@
 #include <stdarg.h>
 #include <string.h>
 #include <sys/time.h>
+#include <limits.h>
+#include <unistd.h>
 
 #include "fastboot.h"
 
@@ -251,6 +253,23 @@ void fb_queue_notice(const char *notice)
     a->data = (void*) notice;
 }
 
+static int remove_file(int fd)
+{
+    char file[PATH_MAX];
+    char *link;
+
+    if (fd < 3)
+        return -1;
+
+    if (asprintf(&link, "/proc/self/fd/%d", fd) == -1)
+        return -1;
+
+    if (readlink(link, file, sizeof(file)) == -1)
+        return -1;
+
+    return unlink(file);
+}
+
 int fb_execute_queue(usb_handle *usb)
 {
     Action *a;
@@ -275,7 +294,12 @@ int fb_execute_queue(usb_handle *usb)
         } else if (a->op == OP_COMMAND) {
             status = fb_command(usb, a->cmd);
             status = a->func(a, status, status ? fb_get_error() : "");
-            if (status) break;
+            if (status) {
+                remove_file(fd_pull);
+                close(fd_pull);
+                break;
+            }
+            close(fd_pull);
         } else if (a->op == OP_QUERY) {
             status = fb_command_response(usb, a->cmd, resp);
             status = a->func(a, status, status ? fb_get_error() : resp);
