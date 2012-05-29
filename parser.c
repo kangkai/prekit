@@ -6,7 +6,6 @@
 
 #include "parser.h"
 
-#define LINE_MAX	1024
 #define KEY_MAX		64
 
 /*

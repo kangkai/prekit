@@ -1,6 +1,7 @@
 #ifndef __PARSER_H
 #define __PARSER_H
 
+#include <limits.h>
 /*
  * config file has the below format
  * VN_IFWI =, # IFWI file
