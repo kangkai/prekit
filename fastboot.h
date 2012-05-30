@@ -55,6 +55,8 @@ void fb_queue_stream_flash(const char *ptn, void *data, unsigned sz);
 /* util stuff */
 void die(const char *fmt, ...);
 
+/* file descriptor and file name of file will be saved by 'oem pull' */
 extern int fd_pull;
+extern char fn_pull[];
 
 #endif

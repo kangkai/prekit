@@ -383,13 +383,13 @@ void do_send_signature(char *fn)
 #define require(n) do { if (argc < (n)) {usage(); exit(1);}} while (0)
 
 int fd_pull;
+char fn_pull[PATH_MAX] = "";
 int do_oem_command(int argc, char **argv)
 {
     int i;
     void *data;
     unsigned sz;
     char command[256];
-	char *fn;
 
     if (argc <= 1) return 0;
 
@@ -399,13 +399,13 @@ int do_oem_command(int argc, char **argv)
         fb_queue_download(argv[2], data, sz);
     } else if (0 == strcmp(argv[1], "pull")) {
         if (argc > 3)
-            fn = argv[3];
+            strncpy(fn_pull, argv[3], sizeof(fn_pull));
         else
-            fn = basename(argv[2]);
-            fd_pull = open(fn, O_CREAT | O_EXCL | O_TRUNC | O_WRONLY,
-                    S_IRUSR | S_IWUSR);
+            strncpy(fn_pull, basename(argv[2]), sizeof(fn_pull));
+        fd_pull = open(fn_pull, O_CREAT | O_EXCL | O_TRUNC | O_WRONLY,
+                S_IRUSR | S_IWUSR);
         if (fd_pull < 0) {
-            fprintf(stderr, "create local file %s: %s\n", fn, strerror(errno));
+            fprintf(stderr, "create local file %s: %s\n", fn_pull, strerror(errno));
             return -1;
         }
     }

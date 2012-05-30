@@ -253,23 +253,6 @@ void fb_queue_notice(const char *notice)
     a->data = (void*) notice;
 }
 
-static int remove_file(int fd)
-{
-    char file[PATH_MAX];
-    char *link;
-
-    if (fd < 3)
-        return -1;
-
-    if (asprintf(&link, "/proc/self/fd/%d", fd) == -1)
-        return -1;
-
-    if (readlink(link, file, sizeof(file)) == -1)
-        return -1;
-
-    return unlink(file);
-}
-
 int fb_execute_queue(usb_handle *usb)
 {
     Action *a;
@@ -295,8 +278,10 @@ int fb_execute_queue(usb_handle *usb)
             status = fb_command(usb, a->cmd);
             status = a->func(a, status, status ? fb_get_error() : "");
             if (status) {
-                remove_file(fd_pull);
-                close(fd_pull);
+                if (strlen(fn_pull) > 0)
+                    unlink(fn_pull);
+                if (fd_pull > 0)
+                    close(fd_pull);
                 break;
             }
             close(fd_pull);

@@ -111,15 +111,15 @@ static int check_response(usb_handle *usb, unsigned size,
         }
 
         if (!memcmp(status, "FILE", 4)) {
-            char *size;
+            char size[9];
             unsigned dsize;
             unsigned left;
             void *data;
             char response[64];
 
-            size = strndup((char *)status + 4, 8);
-            if (!size)
+            if (snprintf(size, sizeof(size), "%s", (char *)status + 4) < 0)
                 goto err;
+            size[8] = 0;
 
             dsize = strtoul(size, 0, 16);
             if (dsize <= 0)
