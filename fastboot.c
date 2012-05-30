@@ -195,6 +195,7 @@ void usage(void)
             "  showtext                                 toggle verbose info displayed on UI\n"
             "  push <local-file>                        push file to target\n"
             "  pull <remote-file> [local-file]          pull file to local from target\n"
+            "  config <keyword> <value>                 config preos at runtime\n"
             "\n"
             "options:\n"
             "  -s <serial number>                       specify device serial number\n"
