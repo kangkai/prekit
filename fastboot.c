@@ -468,9 +468,15 @@ int main(int argc, char **argv)
             vendor_id = (unsigned short)val;
             skip(2);
         } else if(!strcmp(*argv, "getvar")) {
-            require(2);
-            fb_queue_display(argv[1], argv[1]);
-            skip(2);
+            /* when argc == 1, just list all available variables */
+            if (argc == 1) {
+                fb_queue_display("","");
+                skip(1);
+            } else {
+                require(2);
+                fb_queue_display(argv[1], argv[1]);
+                skip(2);
+            }
         } else if(!strcmp(*argv, "erase")) {
             require(2);
             fb_queue_erase(argv[1]);

@@ -188,7 +188,8 @@ static int cb_display(Action *a, int status, char *resp)
         fprintf(stderr, "%s FAILED (%s)\n", a->cmd, resp);
         return status;
     }
-    fprintf(stderr, "%s: %s\n", (char*) a->data, resp);
+    if (strlen(a->data) > 0)
+        fprintf(stderr, "%s: %s\n", (char*) a->data, resp);
     return 0;
 }
 
