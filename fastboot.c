@@ -453,7 +453,7 @@ int main(int argc, char **argv)
             /* all-in-one file */
             do_flashall(*argv);
             wants_reboot = 1;
-            break;
+            skip(1);
         } else if(!strcmp(*argv, "-s")) {
             require(2);
             serial = argv[1];
