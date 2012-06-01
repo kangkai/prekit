@@ -133,7 +133,10 @@ void fb_queue_erase(const char *ptn)
 {
     Action *a;
     a = queue_action(OP_COMMAND, "erase:%s", ptn);
-    a->msg = mkmsg("erasing '%s'", ptn);
+    if (ptn && strlen(ptn) > 0)
+        a->msg = mkmsg("erasing '%s'", ptn);
+    else
+        a->msg = mkmsg("");
 }
 
 void fb_queue_flash(const char *ptn, void *data, unsigned sz)

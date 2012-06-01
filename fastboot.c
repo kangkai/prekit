@@ -478,9 +478,14 @@ int main(int argc, char **argv)
                 skip(2);
             }
         } else if(!strcmp(*argv, "erase")) {
-            require(2);
-            fb_queue_erase(argv[1]);
-            skip(2);
+            if (argc == 1) {
+                fb_queue_erase("");
+                skip(1);
+            } else {
+                require(2);
+                fb_queue_erase(argv[1]);
+                skip(2);
+            }
         } else if(!strcmp(*argv, "reboot")) {
             wants_reboot = 1;
             skip(1);
