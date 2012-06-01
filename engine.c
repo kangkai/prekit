@@ -155,7 +155,10 @@ void fb_queue_stream_flash(const char *ptn, void *data, unsigned sz)
     a = queue_action(OP_FLASH, "flash:%s:%08X", ptn, sz);
     a->data = data;
     a->size = sz;
-    a->msg = mkmsg("streaming flash '%s', size (%d KB)", ptn, sz / 1024);
+    if (ptn && strlen(ptn) > 0)
+        a->msg = mkmsg("streaming flash '%s', size (%d KB)", ptn, sz / 1024);
+    else
+        a->msg = mkmsg("");
 }
 
 static int match(char *str, const char **value, unsigned count)

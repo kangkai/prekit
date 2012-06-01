@@ -491,14 +491,19 @@ int main(int argc, char **argv)
             fb_queue_command("continue", "resuming boot");
             skip(1);
         } else if(!strcmp(*argv, "flash")) {
-            char *pname = argv[1];
-            char *fname = 0;
-            require(3);
-            fname = argv[2];
-            skip(3);
-            data = load_file(fname, &sz);
-            if (data == 0) die("cannot load '%s': %s\n", fname, strerror(errno));
-            fb_queue_stream_flash(pname, data, sz);
+            if (argc == 1) {
+                fb_queue_stream_flash("", NULL, 0);
+                skip(1);
+            } else {
+                char *pname = argv[1];
+                char *fname = 0;
+                require(3);
+                fname = argv[2];
+                skip(3);
+                data = load_file(fname, &sz);
+                if (data == 0) die("cannot load '%s': %s\n", fname, strerror(errno));
+                fb_queue_stream_flash(pname, data, sz);
+            }
         } else if(!strcmp(*argv, "flashall")) {
             require(2);
             do_flashall(argv[1]);
