@@ -185,7 +185,6 @@ void usage(void)
             "  getvar <variable>                        display a bootloader variable\n"
             "  oem <commands>                           oem specific commands\n"
             "  devices                                  list all connected devices\n"
-            "  continue                                 continue with autoboot\n"
             "  reboot                                   reboot device normally\n"
             "  reboot-bootloader                        reboot device into bootloader\n"
             "  help                                     show this help message\n"
@@ -491,9 +490,6 @@ int main(int argc, char **argv)
             skip(1);
         } else if(!strcmp(*argv, "reboot-bootloader")) {
             wants_reboot_bootloader = 1;
-            skip(1);
-        } else if (!strcmp(*argv, "continue")) {
-            fb_queue_command("continue", "resuming boot");
             skip(1);
         } else if(!strcmp(*argv, "flash")) {
             if (argc == 1) {
