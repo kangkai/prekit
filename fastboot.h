@@ -45,7 +45,6 @@ void fb_queue_flash(const char *ptn, void *data, unsigned sz);;
 void fb_queue_erase(const char *ptn);
 void fb_queue_display(const char *var, const char *prettyname);
 void fb_queue_query_save(const char *var, char *dest, unsigned dest_size);
-void fb_queue_reboot(void);
 void fb_queue_command(const char *cmd, const char *msg);
 void fb_queue_download(const char *name, void *data, unsigned size);
 void fb_queue_notice(const char *notice);

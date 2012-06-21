@@ -227,19 +227,6 @@ void fb_queue_query_save(const char *var, char *dest, unsigned dest_size)
     a->func = cb_save;
 }
 
-static int cb_do_nothing(Action *a, int status, char *resp)
-{
-    fprintf(stderr,"\n");
-    return 0;
-}
-
-void fb_queue_reboot(void)
-{
-    Action *a = queue_action(OP_COMMAND, "reboot");
-    a->func = cb_do_nothing;
-    a->msg = "rebooting";
-}
-
 void fb_queue_command(const char *cmd, const char *msg)
 {
     Action *a = queue_action(OP_COMMAND, cmd);
