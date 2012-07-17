@@ -302,10 +302,8 @@ void do_flashall(char *fn)
 
     /* basic check */
     if (strlen(conf.fwr_dnx) <= 0 || strlen(conf.ifwi) <=0 ||
-            strlen(conf.boot) <= 0 || strlen(conf.preos) <= 0) {
-        fprintf(stderr, "invalid config file\n");
-        return;
-    }
+            strlen(conf.boot) <= 0 || strlen(conf.preos) <= 0)
+        die("invalid config file in payload.");
 
     data = unzip_file(zip, conf.fwr_dnx, &sz);
     if (data == 0) die("package missing %s.", conf.fwr_dnx);
