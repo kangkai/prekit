@@ -189,13 +189,6 @@ void usage(void)
             "  reboot-bootloader                        reboot device into bootloader\n"
             "  help                                     show this help message\n"
             "\n"
-            "oem commands:\n"
-            "  system <command>                         execute command on target\n"
-            "  showtext                                 toggle verbose info displayed on UI\n"
-            "  push <local-file>                        push file to target\n"
-            "  pull <remote-file> [local-file]          pull file to local from target\n"
-            "  config <keyword> <value>                 config preos at runtime\n"
-            "\n"
             "options:\n"
             "  -s <serial number>                       specify device serial number\n"
             "  -i <vendor id>                           specify a custom USB vendor id\n"
@@ -389,22 +382,29 @@ int do_oem_command(int argc, char **argv)
     unsigned sz;
     char command[256];
 
-    if (argc <= 1) return 0;
-
-    if (0 == strcmp(argv[1], "push")) {
-        data = load_file(argv[2], &sz);
-        if (data == 0) die("could not load '%s': %s", argv[2], strerror(errno));
-        fb_queue_download(argv[2], data, sz);
-    } else if (0 == strcmp(argv[1], "pull")) {
-        if (argc > 3)
-            strncpy(fn_pull, argv[3], sizeof(fn_pull));
-        else
-            strncpy(fn_pull, basename(argv[2]), sizeof(fn_pull));
-        fd_pull = open(fn_pull, O_CREAT | O_EXCL | O_TRUNC | O_WRONLY,
-                S_IRUSR | S_IWUSR);
-        if (fd_pull < 0) {
-            fprintf(stderr, "create local file %s: %s\n", fn_pull, strerror(errno));
-            return -1;
+    if (argc > 1) {
+        if (0 == strcmp(argv[1], "push")) {
+            if (argc > 2 && strcmp(argv[2], "-h") &&
+					strcmp(argv[2], "--help")) {
+                data = load_file(argv[2], &sz);
+                if (data == 0) die("could not load '%s': %s", argv[2],
+						strerror(errno));
+                fb_queue_download(argv[2], data, sz);
+            }
+        } else if (0 == strcmp(argv[1], "pull")) {
+            if (argc > 3)
+                strncpy(fn_pull, argv[3], sizeof(fn_pull));
+            else if (argc > 2 && strcmp(argv[2], "-h") &&
+					strcmp(argv[2], "--help")) {
+                strncpy(fn_pull, basename(argv[2]), sizeof(fn_pull));
+                fd_pull = open(fn_pull, O_CREAT | O_EXCL | O_TRUNC | O_WRONLY,
+                        S_IRUSR | S_IWUSR);
+                if (fd_pull < 0) {
+                    fprintf(stderr, "create local file %s: %s\n",
+							fn_pull, strerror(errno));
+                    return -1;
+                }
+            }
         }
     }
 
