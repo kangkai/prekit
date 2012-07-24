@@ -396,8 +396,9 @@ int do_oem_command(int argc, char **argv)
             if (argc > 3)
                 strncpy(fn_pull, argv[3], sizeof(fn_pull));
             else if (argc > 2 && strcmp(argv[2], "-h") &&
-					strcmp(argv[2], "--help")) {
+					strcmp(argv[2], "--help"))
                 strncpy(fn_pull, basename(argv[2]), sizeof(fn_pull));
+            if (strlen(fn_pull) > 0) {
                 fd_pull = open(fn_pull, O_CREAT | O_EXCL | O_TRUNC | O_WRONLY,
                         S_IRUSR | S_IWUSR);
                 if (fd_pull < 0) {
