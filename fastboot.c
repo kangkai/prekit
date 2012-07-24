@@ -434,11 +434,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (!strcmp(*argv, "devices")) {
-        list_devices();
-        return 0;
-    }
-
     if (!strcmp(*argv, "help")) {
         usage();
         return 0;
@@ -512,6 +507,9 @@ int main(int argc, char **argv)
             argc = do_oem_command(argc, argv);
             if (argc)
                 return argc;
+        } else if (!strcmp(*argv, "devices")) {
+            list_devices();
+            return 0;
         } else {
             usage();
             return 1;
