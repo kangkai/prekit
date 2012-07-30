@@ -162,12 +162,16 @@ int usb_write(usb_handle* handle, const void* data, int len) {
         // Perform write
         while(len > 0) {
             int xfer = (len > MAX_USBFS_BULK_SIZE) ? MAX_USBFS_BULK_SIZE : len;
-            ret = AdbWriteEndpointSync(handle->adb_write_pipe,
-                                   (void*)data,
-                                   (unsigned long)xfer,
-                                   &written,
-                                   time_out);
-            errno = GetLastError();
+            int i = 0;
+            do {
+                ret = AdbWriteEndpointSync(handle->adb_write_pipe,
+                                       (void*)data,
+                                       (unsigned long)xfer,
+                                       &written,
+                                       time_out);
+                errno = GetLastError();
+            } while (!ret && errno == ERROR_SEM_TIMEOUT);
+
             DBG("AdbWriteEndpointSync returned %d, errno: %d\n", ret, errno);
             if (ret == 0) {
                 // assume ERROR_INVALID_HANDLE indicates we are disconnected
@@ -203,11 +207,11 @@ int usb_read(usb_handle *handle, void* data, int len) {
         while (1) {
             int xfer = (len > MAX_USBFS_BULK_SIZE) ? MAX_USBFS_BULK_SIZE : len;
 
-	        ret = AdbReadEndpointSync(handle->adb_read_pipe,
-	                              (void*)data,
-	                              (unsigned long)xfer,
-	                              &read,
-	                              time_out);
+            ret = AdbReadEndpointSync(handle->adb_read_pipe,
+                                  (void*)data,
+                                  (unsigned long)xfer,
+                                  &read,
+                                  time_out);
             errno = GetLastError();
             DBG("usb_read got: %ld, expected: %d, errno: %d\n", read, xfer, errno);
             if (ret) {
@@ -319,7 +323,7 @@ int recognized_device(usb_handle* handle, ifc_match_func callback) {
 }
 
 static usb_handle *find_usb_device(ifc_match_func callback) {
-	usb_handle* handle = NULL;
+    usb_handle* handle = NULL;
     char entry_buffer[2048];
     char interf_name[2048];
     AdbInterfaceInfo* next_interface = (AdbInterfaceInfo*)(&entry_buffer[0]);
