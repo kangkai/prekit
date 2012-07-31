@@ -91,7 +91,8 @@ static int cb_default(Action *a, int status, char *resp)
         fprintf(stderr,"FAILED (%s)\n", resp);
     } else {
         double split = now();
-        fprintf(stderr,"OKAY [%7.3fs]\n", (split - a->start));
+        fprintf(stderr,"OKAY [%7.3fs]\n", (split - a->start) < 0 ? 0 :
+				(split - a->start));
         a->start = split;
     }
     return status;
