@@ -177,6 +177,7 @@ void usage(void)
 {
     fprintf(stderr,
 /*           1234567890123456789012345678901234567890123456789012345678901234567890123456 */
+            "fastboot " VERSION "\n"
             "usage: fastboot [ <option> ] <command>\n"
             "\n"
             "commands:\n"
@@ -188,11 +189,12 @@ void usage(void)
             "  devices                                  list all connected devices\n"
             "  reboot                                   reboot device normally\n"
             "  reboot-bootloader                        reboot device into bootloader\n"
-            "  help                                     show this help message\n"
             "\n"
             "options:\n"
-            "  -s <serial number>                       specify device serial number\n"
-            "  -i <vendor id>                           specify a custom USB vendor id\n"
+            "  -h|--help                                show this help message\n"
+            "  -v|--version                             print fastboot version\n"
+            "  -s|--serial <serial number>              specify device serial number\n"
+            "  -i|--id <vendor id>                      specify a custom USB vendor id\n"
         );
 }
 
@@ -436,11 +438,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (!strcmp(*argv, "help")) {
+    if (!strcmp(*argv, "-h") || !strcmp(*argv, "--help")) {
         usage();
         return 0;
+    } else if (!strcmp(*argv, "-v") || !strcmp(*argv, "--version")) {
+	    fprintf(stdout, "fastboot %s\n", VERSION);
+	    return 0;
     }
-
 
     while (argc > 0) {
         if(!access(*argv, R_OK)) {
@@ -448,11 +452,11 @@ int main(int argc, char **argv)
             do_flashall(*argv);
             wants_reboot = 1;
             skip(1);
-        } else if(!strcmp(*argv, "-s")) {
+        } else if(!strcmp(*argv, "-s") || !strcmp(*argv, "--serial")) {
             require(2);
             serial = argv[1];
             skip(2);
-        } else if(!strcmp(*argv, "-i")) {
+        } else if(!strcmp(*argv, "-i") || !strcmp(*argv, "--id")) {
             char *endptr = NULL;
             unsigned long val;
             require(2);
