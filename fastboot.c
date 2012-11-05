@@ -262,6 +262,7 @@ void do_flashall(char *fn)
     int status;
 
     /* get target IFWI major version */
+    fprintf(stderr, "query system info...\n");
     fb_queue_query_save("ifwi", ver, sizeof(ver));
     usb = open_device();
     fb_execute_queue(usb);
