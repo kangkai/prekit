@@ -148,12 +148,15 @@ int list_devices_callback(usb_ifc_info *info)
     return -1;
 }
 
+int check_usb_devices(usb_ifc_info *info);
 usb_handle *open_device(void)
 {
     static usb_handle *usb = 0;
     int announce = 1;
 
     if(usb) return usb;
+
+    usb_open(check_usb_devices);
 
     for(;;) {
         usb = usb_open(match_fastboot);
@@ -196,6 +199,24 @@ void usage(void)
             "  -s|--serial <serial number>              specify device serial number\n"
             "  -i|--id <vendor id>                      specify a custom USB vendor id\n"
         );
+}
+
+int check_usb_devices(usb_ifc_info *info)
+{
+    static int nr_usb = 0;
+
+    if (match_fastboot(info) == 0)
+        nr_usb++;
+
+    if (nr_usb > 1) {
+        fprintf(stderr, "Error: found more than one devices connected.\n");
+        list_devices();
+        fprintf(stderr, "Please specify one by using '-s' option\n\n");
+        usage();
+        exit(EXIT_FAILURE);
+    }
+
+    return -1;
 }
 
 void *unzip_file(zipfile_t zip, const char *name, unsigned *sz)
