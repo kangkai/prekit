@@ -58,6 +58,6 @@ void die(const char *fmt, ...);
 extern int fd_pull;
 extern char fn_pull[];
 
-#define VERSION "0.7"
+#define VERSION "0.7.1"
 
 #endif

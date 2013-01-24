@@ -304,58 +304,53 @@ void do_flashall(char *fn)
     if (data == 0) {
         /* is raw container tarball? */
         data = unzip_file(zip, FW_CONFIG, &sz);
-        if (data == 0)
-            die("invalid input file: %s\n", fn);
-        if (parse_config(data, (size_t)sz, &conf, ver))
+        if (data != 0 && parse_config(data, (size_t)sz, &conf, ver))
             die("parse config: %s failed.", FW_CONFIG);
         data = unzip_file(zip, PREOS_CONFIG, &sz);
-        if (data == 0)
-            die("invalid input file: %s\n", fn);
-        if (parse_config(data, (size_t)sz, &conf, ver))
+        if (data != 0 && parse_config(data, (size_t)sz, &conf, ver))
             die("parse config: %s failed.", PREOS_CONFIG);
     } else {
         if (parse_config(data, (size_t)sz, &conf, ver))
             die("parse config failed.");
     }
 
-    /* basic check */
-    if (strlen(conf.fwr_dnx) <= 0 || strlen(conf.ifwi) <=0 ||
-            strlen(conf.boot) <= 0 || strlen(conf.preos) <= 0)
-        die("invalid config file in payload.");
-
+    /*
+     * every component is optional, no need to check
+     * the second of unzip_file argument if it's not null
+     * memcmp can handle NULL pointer.
+     */
     data = unzip_file(zip, conf.fwr_dnx, &sz);
-    if (data == 0) die("package missing %s.", conf.fwr_dnx);
-    fb_queue_stream_flash("dnx", data, sz);
+    if (data != 0)
+        fb_queue_stream_flash("dnx", data, sz);
 
     data = unzip_file(zip, conf.ifwi, &sz);
-    if (data == 0) die("package missing %s.", conf.ifwi);
-    fb_queue_stream_flash("ifwi", data, sz);
+    if (data != 0)
+        fb_queue_stream_flash("ifwi", data, sz);
 
     data = unzip_file(zip, conf.boot, &sz);
-    if (data == 0) die("package missing %s.", conf.boot);
-    fb_queue_stream_flash("boot", data, sz);
+    if (data != 0)
+        fb_queue_stream_flash("boot", data, sz);
 
     data = unzip_file(zip, conf.preos, &sz);
-    if (data == 0) die("package missing %s.", conf.preos);
-    fb_queue_stream_flash("preos", data, sz);
+    if (data != 0)
+        fb_queue_stream_flash("preos", data, sz);
 
     /* try to get platform image.
      * first, try gziped.
      * second, try bzip2.
      * at last, try raw image
-     * otherwise, die
      */
     data = unzip_file(zip, PLATFORM_IMG ".gz", &sz);
     if (data == 0) {
         data = unzip_file(zip, PLATFORM_IMG ".bz2", &sz);
         if (data == 0) {
             data = unzip_file(zip, PLATFORM_IMG, &sz);
-            if (data == 0) die("package missing platform image.");
         }
     }
-    fb_queue_stream_flash("platform", data, sz);
+    if (data != 0)
+        fb_queue_stream_flash("platform", data, sz);
 
-    /* data and csa are optional */
+    /* data and csa partition image */
     data = unzip_file(zip, DATA_IMG ".gz", &sz);
     if (data == 0) {
         data = unzip_file(zip, DATA_IMG ".bz2", &sz);
