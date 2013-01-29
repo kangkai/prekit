@@ -43,6 +43,7 @@
 #include "libzipfile/zipfile.h"
 #include "fastboot.h"
 #include "parser.h"
+#include "config.h"
 
 /* config file in system-converted tarball */
 #define CONFIG_FILE  "manifest.txt"
@@ -180,7 +181,7 @@ void usage(void)
 {
     fprintf(stderr,
 /*           1234567890123456789012345678901234567890123456789012345678901234567890123456 */
-            "fastboot " VERSION "\n"
+            PACKAGE_STRING "\n"
             "usage: fastboot [ <option> ] <command>\n"
             "\n"
             "commands:\n"
@@ -459,7 +460,7 @@ int main(int argc, char **argv)
         usage();
         return 0;
     } else if (!strcmp(*argv, "-v") || !strcmp(*argv, "--version")) {
-	    fprintf(stdout, "fastboot %s\n", VERSION);
+	    fprintf(stdout, PACKAGE_STRING "\n");
 	    return 0;
     }
 

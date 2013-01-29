@@ -68,7 +68,7 @@ AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
 
 # Checks for library functions.
-AC_FUNC_MALLOC
+# AC_FUNC_MALLOC, this will fail for windows build
 AC_CHECK_FUNCS([gettimeofday memset strchr strdup strerror strrchr strtoul])
 
 AC_CONFIG_FILES([Makefile
