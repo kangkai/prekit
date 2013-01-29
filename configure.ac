@@ -26,7 +26,7 @@ case $host_os in
 		ln -sf util_windows.c util_os.c
 		ZIPFILE_INCLUDE="-I\$(top_srcdir)/zlib-1.2.3-lib/include"
 		USB_INCLUDE="-I\$(top_srcdir)/usb/api"
-		ZLIB_LIBS="-L\$(top_builddir)/zlib-1.2.3-lib/lib -lz"
+		ZLIB_LIBS="\$(top_builddir)/zlib-1.2.3-lib/lib/libz.a"
 		USB_LIBS="-L\$(top_srcdir)/prebuilt/usb -lAdbWinApi"
 		;;
 	# for linux
