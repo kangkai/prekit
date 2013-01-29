@@ -6,13 +6,54 @@ AC_INIT([fastboot], [0.8-dev], [chengwei.yang@intel.com])
 
 AM_INIT_AUTOMAKE([-Wall -Werror])
 
+# init libtool
+LT_INIT(disable-shared)
+
 AC_CONFIG_SRCDIR([fastboot.c])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
+
+# check for host, only linux and windows support
+AC_MSG_CHECKING([host])
+AC_CANONICAL_HOST
+
+case $host_os in
+	# for windows
+	mingw*)
+		#FIXME: why AC_CONFIG_LINKS doesn't work?
+		#AC_CONFIG_LINKS([usb_os.c:usb_windows.c util_os.c:util_windows.c])
+		ln -sf usb_windows.c usb_os.c
+		ln -sf util_windows.c util_os.c
+		ZIPFILE_INCLUDE="-I\$(top_srcdir)/zlib-1.2.3-lib/include"
+		USB_INCLUDE="-I\$(top_srcdir)/usb/api"
+		ZLIB_LIBS="-L\$(top_builddir)/zlib-1.2.3-lib/lib -lz"
+		USB_LIBS="-L\$(top_srcdir)/prebuilt/usb -lAdbWinApi"
+		;;
+	# for linux
+	linux*)
+		#AC_CONFIG_LINKS([usb_os.c:usb_linux.c util_os.c:util_linux.c])
+		ln -sf usb_linux.c usb_os.c
+		ln -sf util_linux.c util_os.c
+		ZIPFILE_INCLUDE=
+		FASTBOOT_INCLUDE=
+		ZLIB_LIBS="-lz"
+		USB_LIBS=
+		;;
+	*)
+	# error
+		AC_MSG_ERROR([Unsupport host])
+		;;
+esac
+AC_MSG_RESULT([$host])
+
+AC_SUBST([ZIPFILE_INCLUDE])
+AC_SUBST([USB_INCLUDE])
+AC_SUBST([ZLIB_LIBS])
+AC_SUBST([USB_LIBS])
 
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
-AC_PROG_RANLIB
 
 # Checks for libraries.
 AC_CHECK_LIB([z], [inflate])

@@ -1,3 +1,5 @@
+NOTICE
+=========
 The source code here is orignal come from OTC android project.
 The mapping between them looks like below.
 
@@ -5,3 +7,40 @@ OTC android src tree                    source directory
 system/core/fastboot                    .
 system/core/libzipfile                  libzipfile
 system/core/include/zipfile/zipfile.h   libzipfile/zipfile.h
+
+
+How to build and install?
+=========================
+This project use GNU Autotools as build system, so it's quite simple to build it
+like below:
+
+$ autoreconf -i (if you're using git source tree)
+$ ./configure
+$ make
+$ sudo make install
+
+For more advanced usage, please refer to INSTALL.
+
+
+How to build for Windows?
+=========================
+First, you need install cross compile toolchain, the below take mingw as
+example.
+
+# apt-get install gcc-mingw32
+$ ./configure --build x86_64-linux-gnu --host i686-w64-mingw32
+$ make
+
+There is a simple way to figure out what should "--build" and "--host" should
+be in your case.
+
+For "--build", just run
+$ ./config.guess
+
+For "--host", this is the prefix of your cross compile toolchain, for me, it
+i686-w64-mingw32.
+
+After compile finished, you'll find fastboot.exe and usbtest.exe in current
+directory.
+
+NOTE: to use them on Windows, you need install correct usb drivers.
