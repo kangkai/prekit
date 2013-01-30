@@ -295,6 +295,7 @@ int fb_execute_queue(usb_handle *usb)
         }
     }
 
-    fprintf(stderr,"finished. total time: %.3fs\n", (now() - start));
+    double split = now() - start;
+    fprintf(stderr,"finished. total time: %.3fs\n", split < 0 ? 0 : split);
     return status;
 }
