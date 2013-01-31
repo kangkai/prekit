@@ -4,7 +4,7 @@
 AC_PREREQ([2.68])
 AC_INIT([fastboot], [0.8-dev], [chengwei.yang@intel.com])
 
-AM_INIT_AUTOMAKE([-Wall -Werror])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 # init libtool
 LT_INIT(disable-shared)

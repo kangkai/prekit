@@ -5,7 +5,8 @@ EXTRA_DIST = \
 	util_windows.c \
 	zlib-1.2.3-lib \
 	prebuilt \
-	usb
+	usb \
+	NOTICE
 
 SUBDIRS = libzipfile
 
