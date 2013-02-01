@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([fastboot], [0.8-dev], [chengwei.yang@intel.com])
+AC_INIT([fastboot], [0.8], [chengwei.yang@intel.com])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
