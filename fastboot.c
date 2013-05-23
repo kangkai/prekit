@@ -124,7 +124,8 @@ int match_fastboot(usb_ifc_info *info)
        (info->dev_vendor != 0x0bb4))    // HTC
             return -1;
     if(info->ifc_class != 0xff) return -1;
-    if(info->ifc_subclass != 0x42) return -1;
+    /* Tizen sdb changed the subclass*/
+    if(info->ifc_subclass != 0x20) return -1;
     if(info->ifc_protocol != 0x03) return -1;
     // require matching serial number if a serial number is specified
     // at the command line with the -s option.
