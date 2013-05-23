@@ -13,10 +13,10 @@ SUBDIRS = libzipfile
 # introduced for libtool
 ACLOCAL_AMFLAGS = -I m4
 
-bin_PROGRAMS = fastboot usbtest
+bin_PROGRAMS = prekit usbtest
 
 # usb_os.c and util_os.c are links to platform specific source files
-fastboot_SOURCES = \
+prekit_SOURCES = \
 	protocol.c \
 	engine.c \
 	fastboot.c \
@@ -30,7 +30,7 @@ fastboot_SOURCES = \
 AM_CFLAGS = \
 	@USB_INCLUDE@
 
-fastboot_LDADD = \
+prekit_LDADD = \
 	$(top_builddir)/libzipfile/libzipfile.la \
 	@ZLIB_LIBS@ \
 	@USB_LIBS@
