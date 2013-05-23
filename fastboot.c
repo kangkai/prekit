@@ -183,7 +183,7 @@ void usage(void)
     fprintf(stderr,
 /*           1234567890123456789012345678901234567890123456789012345678901234567890123456 */
             PACKAGE_STRING "\n"
-            "usage: fastboot [ <option> ] <command>\n"
+            "usage: prekit [ <option> ] <command>\n"
             "\n"
             "commands:\n"
             "  [flashall] <filename>                    reflash device from a zip package\n"
