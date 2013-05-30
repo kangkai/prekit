@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.68])
+AC_PREREQ([2.65])
 AC_INIT([prekit], [0.9], [chengwei.yang@intel.com])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
@@ -35,9 +35,13 @@ case $host_os in
 		ln -sf usb_linux.c usb_os.c
 		ln -sf util_linux.c util_os.c
 		ZIPFILE_INCLUDE=
-		FASTBOOT_INCLUDE=
-		ZLIB_LIBS="-lz"
+		USB_INCLUDE=
 		USB_LIBS=
+		ZLIB_LIBS=
+		# Checks for libraries.
+		AC_CHECK_LIB([z], [inflate], [], [
+			AC_MSG_ERROR([No zlib development files found on your host.])
+		])
 		;;
 	*)
 	# error
@@ -54,9 +58,6 @@ AC_SUBST([USB_LIBS])
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
-
-# Checks for libraries.
-AC_CHECK_LIB([z], [inflate])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h sys/time.h unistd.h])
