@@ -38,7 +38,11 @@ For "--build", just run
 $ ./config.guess
 
 For "--host", this is the prefix of your cross compile toolchain, for me, it
-i686-w64-mingw32.
+is i686-w64-mingw32.
+
+Also, you can build with sepcial CFLAGS as necessary, say CFLAGS="-m32" for
+building 32bit binary or even add include hearder search directory, that's
+the case of i586-mingw32msvc.
 
 After compile finished, you'll find fastboot.exe and usbtest.exe in current
 directory.
