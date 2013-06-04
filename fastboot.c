@@ -59,6 +59,9 @@ static usb_handle *usb = 0;
 static const char *serial = 0;
 static int wipe_data = 0;
 static unsigned short vendor_id = 0;
+#if HAVE_COMPATIBILITY
+static int old_preos = 0;
+#endif
 
 void die(const char *fmt, ...)
 {
@@ -124,8 +127,15 @@ int match_fastboot(usb_ifc_info *info)
        (info->dev_vendor != 0x0bb4))    // HTC
             return -1;
     if(info->ifc_class != 0xff) return -1;
+#if HAVE_COMPATIBILITY
     /* Tizen sdb changed the subclass*/
-    if(info->ifc_subclass != 0x20) return -1;
+    if ((!old_preos && info->ifc_subclass != 0x20) ||
+            /* Android adb subclass, old preos compatibility */
+            ((old_preos) && info->ifc_subclass != 0x42))
+            return -1;
+#else
+    if (info->ifc_subclass != 0x20) return -1;
+#endif
     if(info->ifc_protocol != 0x03) return -1;
     // require matching serial number if a serial number is specified
     // at the command line with the -s option.
@@ -200,6 +210,9 @@ void usage(void)
             "  -v|--version                             print fastboot version\n"
             "  -s|--serial <serial number>              specify device serial number\n"
             "  -i|--id <vendor id>                      specify a custom USB vendor id\n"
+#if HAVE_COMPATIBILITY
+            "  -o|--old                                 communicate with old preos-runtime\n"
+#endif
         );
 }
 
@@ -456,6 +469,12 @@ int main(int argc, char **argv)
         usage();
         return 1;
     }
+#if HAVE_COMPATIBILITY
+    if (argc == 1 && (!strcmp(*argv, "-o") || !strcmp(*argv, "--old"))) {
+        usage();
+        return 1;
+    }
+#endif
 
     if (!strcmp(*argv, "-h") || !strcmp(*argv, "--help")) {
         usage();
@@ -535,6 +554,11 @@ int main(int argc, char **argv)
         } else if (!strcmp(*argv, "devices")) {
             list_devices();
             return 0;
+#if HAVE_COMPATIBILITY
+        } else if (!strcmp(*argv, "-o") || !strcmp(*argv, "--old")) {
+            old_preos = 1;
+            skip(1);
+#endif
         } else {
             usage();
             return 1;

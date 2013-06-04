@@ -59,6 +59,18 @@ AC_SUBST([USB_LIBS])
 AC_PROG_CXX
 AC_PROG_CC
 
+# Keep compatibility with old preos?
+have_compatibility=no
+AC_ARG_ENABLE(compatibility, AS_HELP_STRING([--enable-compatibility], [enable old preos support]),
+        [case "$enableval" in
+                yes) have_compatibility="yes";;
+                no) have_compatibility="no";;
+        esac])
+if test "x$have_compatibility" != "xno"; then
+        have_compatibility="yes"
+fi
+AS_IF([test "$have_compatibility" = "yes"], [ AC_DEFINE(HAVE_COMPATIBILITY, [1], [keep old preos compatibility]) ])
+
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h sys/time.h unistd.h])
 
