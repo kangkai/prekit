@@ -39,6 +39,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <libgen.h>
+#include <sys/mman.h>
 
 #include "libzipfile/zipfile.h"
 #include "fastboot.h"
@@ -252,8 +253,34 @@ void *unzip_file(zipfile_t zip, const char *name, unsigned *sz)
     data = malloc(datasz);
 
     if(data == 0) {
-        fprintf(stderr, "failed to allocate %d bytes\n", *sz);
-        return 0;
+        /* fall back to decompress entry to file @name */
+        char path[PATH_MAX] = "";
+        int fd;
+        void *addr;
+        snprintf(path, sizeof(path), "/tmp/%s", name);
+        if (decompress_zipentry(entry, path, 0)) {
+            fprintf(stderr, "failed to decompress '%s' from archive\n", name);
+            return 0;
+        }
+
+        /* parse_config will write it in memory, so open it with "rw" */
+        fd = open(path, O_RDWR);
+        if (fd == -1) {
+            fprintf(stderr, "failed to open file: '%s': %m\n", path);
+            return 0;
+        }
+        unlink(path);
+
+        *sz = lseek(fd, 0, SEEK_END);
+
+        addr = mmap(NULL, *sz, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        if (addr == MAP_FAILED) {
+            fprintf(stderr, "mmap failed: %m\n");
+            close(fd);
+            return 0;
+        }
+
+        return addr;
     }
 
     if (decompress_zipentry(entry, data, datasz)) {
@@ -539,7 +566,13 @@ int main(int argc, char **argv)
                 fname = argv[2];
                 skip(3);
                 data = load_file(fname, &sz);
-                if (data == 0) die("cannot load '%s': %s\n", fname, strerror(errno));
+                if (data == 0) {
+                    int fd = open(fname, O_RDONLY);
+                    if (fd == -1) die("cannot open %s for read: %m\n", fname);
+                    sz = lseek(fd, 0, SEEK_END);
+                    data = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0);
+                    if (data == MAP_FAILED) die("cannot map '%s': %s\n", fname, strerror(errno));
+                }
                 fb_queue_stream_flash(pname, data, sz);
             }
         } else if(!strcmp(*argv, "flashall")) {

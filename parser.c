@@ -58,9 +58,8 @@ int parse_config(char *stream, size_t size, struct config *conf, char *ver)
 			continue;
 		}
 
-		if (!strcmp(key, key_ifwi)) {
+		if (!strcmp(key, key_ifwi))
 			strncpy(conf->ifwi, value, sizeof(conf->ifwi));
-		}
 		else if (!strcmp(key, key_fwr_dnx))
 			strncpy(conf->fwr_dnx, value, sizeof(conf->fwr_dnx));
 		else if (!strcmp(key, "NORMALOS"))

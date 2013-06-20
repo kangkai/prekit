@@ -279,6 +279,11 @@ static usb_handle *find_usb_device(const char *base, ifc_match_func callback)
 int usb_write(usb_handle *h, const void *_data, int len)
 {
     unsigned char *data = (unsigned char*) _data;
+    /* unmmap transfered memory */
+    unsigned char *addr = _data;
+    int page_size = 0;
+    int free_len = 0;
+    int freed_size = 0;
     unsigned count = 0;
     struct usbdevfs_bulktransfer bulk;
     int n;
@@ -302,6 +307,19 @@ int usb_write(usb_handle *h, const void *_data, int len)
         return 0;
     }
     
+    page_size = sysconf(_SC_PAGE_SIZE);
+    if (page_size == -1) {
+        DBG("ERROR: can not get system page size\n");
+    } else {
+        /*
+         * according to munmap(2)
+         * It is not an error if the indicated range does not contain any mapped pages.
+         * we'll limit the size to 10MB
+         */
+#define MUNMAP_SIZE (10 * 1024 * 1024)
+        free_len = MUNMAP_SIZE - MUNMAP_SIZE % page_size;
+    }
+
     while(len > 0) {
         int xfer;
         xfer = (len > MAX_USBFS_BULK_SIZE) ? MAX_USBFS_BULK_SIZE : len;
@@ -321,6 +339,15 @@ int usb_write(usb_handle *h, const void *_data, int len)
         count += xfer;
         len -= xfer;
         data += xfer;
+
+        if (count - freed_size >= free_len) {
+            if (munmap(addr, free_len)) {
+                DBG("ERROR: munmap failed: %m\n");
+                continue;
+            }
+            freed_size += free_len;
+            addr += free_len;
+        }
     }
 
     return count;

@@ -57,7 +57,7 @@ lookup_zipentry(zipfile_t f, const char* entryName)
     Zipentry* entry = file->entries;
     while (entry) {
         if (0 == memcmp(entryName, entry->fileName,
-					max(entry->fileNameLength, strlen(entryName)))) {
+                                max(entry->fileNameLength, strlen(entryName)))) {
             return entry;
         }
         entry = entry->next;
@@ -124,6 +124,64 @@ uninflate(unsigned char* out, int unlen, const unsigned char* in, int clen)
     return err;
 }
 
+static int
+uninflate_to_file(Zipentry *entry, const char *name)
+{
+    FILE *dest;
+    int ret;
+    unsigned have;
+    z_stream strm;
+#define CHUNK (16 * 1024)
+    unsigned char out[CHUNK];
+
+    if (entry == NULL) {
+        fprintf(stderr, "null entry\n");
+        return -1;
+    }
+    dest = fopen(name, "w");
+    if (dest == NULL) {
+        fprintf(stderr, "failed to open file to write: %m\n");
+        return -1;
+    }
+    /* allocate inflate state */
+    strm.zalloc = Z_NULL;
+    strm.zfree = Z_NULL;
+    strm.opaque = Z_NULL;
+    strm.avail_in = entry->compressedSize;
+    strm.next_in = entry->data;
+    ret = inflateInit2(&strm, -MAX_WBITS);
+    if (ret != Z_OK)
+        return -1;
+
+    do {
+        strm.avail_out = CHUNK;
+        strm.next_out = out;
+        ret = inflate(&strm, Z_NO_FLUSH);
+        switch (ret) {
+            case Z_NEED_DICT:
+                ret = Z_DATA_ERROR;     /* and fall through */
+            case Z_DATA_ERROR:
+            case Z_MEM_ERROR:
+            case Z_STREAM_ERROR:
+                (void)inflateEnd(&strm);
+                fprintf(stderr, "inflate failed: %d\n", ret);
+                return ret;
+        }
+        have = CHUNK - strm.avail_out;
+        if (have <= 0) {
+            return -1;
+        }
+        if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
+            (void)inflateEnd(&strm);
+            return Z_ERRNO;
+        }
+    } while (strm.avail_out == 0);
+
+    (void)inflateEnd(&strm);
+    fclose(dest);
+    return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
+}
+
 int
 decompress_zipentry(zipentry_t e, void* buf, int bufsize)
 {
@@ -134,7 +192,9 @@ decompress_zipentry(zipentry_t e, void* buf, int bufsize)
             memcpy(buf, entry->data, entry->uncompressedSize);
             return 0;
         case DEFLATED:
-            return uninflate(buf, bufsize, entry->data, entry->compressedSize);
+            if (bufsize > 0)
+                return uninflate(buf, bufsize, entry->data, entry->compressedSize);
+            return uninflate_to_file(entry, buf);
         default:
             return -1;
     }
