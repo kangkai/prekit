@@ -4,6 +4,9 @@
 AC_PREREQ([2.65])
 AC_INIT([prekit], [0.9], [chengwei.yang@intel.com])
 
+m4_pattern_allow([AM_PROG_AR])
+AM_PROG_AR
+
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 # init libtool
