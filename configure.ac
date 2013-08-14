@@ -58,6 +58,9 @@ AC_SUBST([USB_INCLUDE])
 AC_SUBST([ZLIB_LIBS])
 AC_SUBST([USB_LIBS])
 
+AC_DEFINE_UNQUOTED(BUILD_GIT, "`git log --oneline -n1 | cut -f1 -d' '`", [build git hash])
+AC_DEFINE_UNQUOTED(BUILD_DATE, "`date`", [build date])
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC

@@ -193,7 +193,7 @@ void usage(void)
 {
     fprintf(stderr,
 /*           1234567890123456789012345678901234567890123456789012345678901234567890123456 */
-            PACKAGE_STRING "\n"
+            PACKAGE_STRING " (" BUILD_GIT ")" " built " BUILD_DATE "\n"
             "usage: prekit [ <option> ] <command>\n"
             "\n"
             "commands:\n"
