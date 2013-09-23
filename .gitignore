@@ -24,3 +24,6 @@ util_os.c
 *.lo
 *.tar.gz
 libtool
+missing
+install-sh
+depcomp
