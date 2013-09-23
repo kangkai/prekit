@@ -4,8 +4,8 @@
 AC_PREREQ([2.65])
 AC_INIT([prekit], [0.9], [chengwei.yang@intel.com])
 
-m4_pattern_allow([AM_PROG_AR])
-AM_PROG_AR
+# AM_PROG_AR introduced in automake 1.12, fix build with old automake
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
